@@ -5,3 +5,12 @@ html, body {height:100%;margin:0;overflow:hidden;background:#000;color:#ebeded;f
 #status {display:none;position:fixed;left:18px;top:14px;font-size:12px;color:#adbdc4;background:#080b0dce;padding:9px 12px;border:1px solid #20272b;border-radius:8px;max-width:75vw;z-index:10}
 #help {display:none;position:fixed;right:15px;bottom:12px;font-size:11px;color:#8a959b;z-index:10}
 #no-p5 {position:fixed;left:20%;right:20%;top:45%;text-align:center;background:#1b1b1b;padding:22px;border:1px solid #333;z-index:20}
+
+/* Panneau intégré : carte externe interactive 8766 ; reste visible en plein écran. */
+#biome-panel {position:fixed;left:7%;width:86%;top:64%;height:33%;z-index:4;background:#030405;border:1px solid #343b3e;display:flex;flex-direction:column;overflow:hidden}
+#biome-header {height:31px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;border-bottom:1px solid #303638;color:#c6c9c7;font:12px "Courier New",monospace;letter-spacing:.08em}
+#biome-info {color:#889395;font-size:11px}
+#biome-map {width:100%;flex:1;min-height:0;border:0;background:#070909;display:block}
+#biome-fallback {position:absolute;left:18px;bottom:6px;pointer-events:none;margin:0;color:#7b898b;font-size:10px;background:#030405a8;padding:4px 6px}
+#biome-fallback a {pointer-events:auto;color:#b6c1c2}
+@media(max-width:640px){#biome-panel{left:3%;width:94%;top:58%;height:39%}#biome-header{font-size:9px;padding:0 8px}#biome-info{font-size:9px}#biome-fallback{font-size:9px}}

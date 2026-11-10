@@ -80,28 +80,26 @@ function draw(){
   const s=Math.min(width/REF_W,height/REF_H);
   push();translate((width-REF_W*s)*0.5,(height-REF_H*s)*0.5);scale(s);
   // Wide top strip containing two lenses, lower third intentionally reserved for BioCLIP.
-  const leftX=400,rightX=1200,y=345,d=580;
+  const leftX=410,rightX=1190,y=232,d=385;
   const idx=bands.length===3?Math.floor((millis()-bandStarted)/BAND_INTERVAL)%3:0;
   drawCircleSource(leftX,y,d,bands.length===3?bands[idx]:null);
   drawCircleVideo(rightX,y,d,video);
   if(showLabels){
     // Echelle nominale : le diamètre utile de chaque rond représente 5 mm.
     // Validité physique à confirmer avec une lame micrométrique.
-    drawScaleBar(leftX,656,d,5);
-    drawScaleBar(rightX,656,d,5);
+    drawScaleBar(leftX,449,d,5);
+    drawScaleBar(rightX,449,d,5);
     noStroke();fill(219,225,227);textFont("Courier New");textSize(21);textStyle(NORMAL);
-    text('PERCEPTION SPECTRALE',leftX,716);
-    text('PERCEPTION SPÉCULATIVE',rightX,716);
+    text('PERCEPTION SPECTRALE',leftX,511);
+    text('PERCEPTION SPÉCULATIVE',rightX,511);
     fill(150,160,164);textSize(13);
-    if(bands.length===3)text(BAND_LABELS[idx]+'  /  CHAMP 5 × 5 mm*',leftX,746);
-    else text('CHAMP 5 × 5 mm*',leftX,746);
-    text('ÉCHELLE DE LA SOURCE*',rightX,746);
+    if(bands.length===3)text(BAND_LABELS[idx]+'  /  CHAMP 5 × 5 mm*',leftX,540);
+    else text('CHAMP 5 × 5 mm*',leftX,540);
+    text('ÉCHELLE DE LA SOURCE*',rightX,540);
   }
-  // Espace de bas de page réservé à BioCLIP; aucune donnée simulée.
-  stroke(38,44,47);strokeWeight(1);line(210,786,1390,786);
-  noStroke();fill(99,112,120);textSize(15);text('BIOCLIP 2 — ESPACE LATENT À INTÉGRER',800,826);
-  fill(96,101,105);textSize(11);
-  text('* ÉCHELLE NOMINALE — À CALIBRER SUR LE MICROSCOPE',800,872);
+  // La carte externe occupe la partie basse via un iframe DOM (port 8766).
+  noStroke();fill(90,96,101);textSize(11);
+  text('* ÉCHELLE NOMINALE — CALIBRATION MICROSCOPIQUE REQUISE',800,567);
   pop();
 }
 function emptyDisc(cx,cy,d,message){
