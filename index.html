@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#000000" />
+<title>Holochloris — Perceptions</title>
+<link href="style.css" rel="stylesheet" />
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.11/p5.min.js"></script>
+<script defer src="sketch.js"></script>
+</head>
+<body>
+<main id="stage" aria-label="Holochloris, deux perceptions circulaires et emplacement BioCLIP"></main>
+<div id="status" role="status">Initialisation…</div>
+<div id="help">F : plein écran &nbsp;·&nbsp; I : diagnostic &nbsp;·&nbsp; Espace : libellés</div>
+<div id="no-p5" hidden>La bibliothèque p5.js ne s'est pas chargée. Vérifie ta connexion Internet : cette version charge p5.js depuis cdnjs.</div>
+<script>window.addEventListener('load',()=>{setTimeout(()=>{if(typeof window.p5==='undefined'){document.getElementById('no-p5').hidden=false;}},1800);});</script>
+</body>
+</html>
