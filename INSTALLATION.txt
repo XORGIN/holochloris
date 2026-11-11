@@ -1,0 +1,31 @@
+HOLOCHLORIS — TOPOLOGIE VECTORIELLE INTERACTIVE
+==============================================
+
+1. Sauvegarder :
+   C:\holochloris_web_p5\index.html
+   C:\holochloris_web_p5\style.css
+
+2. Copier UNIQUEMENT index.html et style.css dans C:\holochloris_web_p5\.
+   Ne PAS remplacer map-only.html, sketch.js, server.py, config.json, output/.
+   Ne PAS modifier BioCLIP sur 8766 ni ComfyUI.
+
+3. Démarrer BioCLIP sur 8766 et Holochloris sur 8765, puis Ctrl+F5.
+
+4. La carte BioCLIP reste à gauche. À droite : SVG codé à la main, sans image importée.
+   Déplacer le pointeur dans la topologie actualise position, territoire et hypothèse.
+   Cliquer sur la carte ou sur l'un des NOMS pour confirmer le mode C1/C2.
+   Les noms sont accessibles au clavier (Tab + Entrée/Espace).
+
+5. Neuf territoires conceptuels sont cliquables :
+   TROPICAL, SAVANE, DÉSERT, MÉDITERRANÉEN, BIOMES ALPINS,
+   BORÉAL, FORÊT TEMPÉRÉE, TAÏGA, TOUNDRA.
+
+IMPORTANT — COMPATIBILITÉ DES AUTOMATISATIONS
+L'API existante ne connaît que cinq modes : tropical, desert, boreal, taiga, tundra.
+Les quatre milieux intermédiaires sont bien cliquables mais utilisent un mode existant
+pour les générations C1/C2 : SAVANE => TROPICAL ; MÉDITERRANÉEN => DÉSERT ;
+BIOMES ALPINS => BORÉAL ; FORÊT TEMPÉRÉE => BORÉAL.
+L'interface affiche à part le territoire conceptuel et le MODE C1/C2.
+Ce choix n'est PAS une identification scientifique de biome par BioCLIP.
+La mise à jour du territoire est immédiate dans le navigateur ; les générations C2
+n'intègrent une nouvelle sélection qu'à leur prochaine exécution.

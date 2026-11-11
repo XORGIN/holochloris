@@ -1,16 +1,30 @@
-:root {color-scheme:dark}
-* {box-sizing:border-box}
-html, body {height:100%;margin:0;overflow:hidden;background:#000;color:#ebeded;font-family:"Courier New",Courier,monospace;letter-spacing:.06em}
-#stage, #stage canvas {display:block;width:100%;height:100%}
-#status {display:none;position:fixed;left:18px;top:14px;font-size:12px;color:#adbdc4;background:#080b0dce;padding:9px 12px;border:1px solid #20272b;border-radius:8px;max-width:75vw;z-index:10}
-#help {display:none;position:fixed;right:15px;bottom:12px;font-size:11px;color:#8a959b;z-index:10}
-#no-p5 {position:fixed;left:20%;right:20%;top:45%;text-align:center;background:#1b1b1b;padding:22px;border:1px solid #333;z-index:20}
-
-/* Panneau intégré : carte externe interactive 8766 ; reste visible en plein écran. */
-#biome-panel {position:fixed;left:7%;width:86%;top:64%;height:33%;z-index:4;background:#030405;border:1px solid #343b3e;display:flex;flex-direction:column;overflow:hidden}
-#biome-header {height:31px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;border-bottom:1px solid #303638;color:#c6c9c7;font:12px "Courier New",monospace;letter-spacing:.08em}
-#biome-info {color:#889395;font-size:11px}
-#biome-map {width:100%;flex:1;min-height:0;border:0;background:#070909;display:block}
-#biome-fallback {position:absolute;left:18px;bottom:6px;pointer-events:none;margin:0;color:#7b898b;font-size:10px;background:#030405a8;padding:4px 6px}
-#biome-fallback a {pointer-events:auto;color:#b6c1c2}
-@media(max-width:640px){#biome-panel{left:3%;width:94%;top:58%;height:39%}#biome-header{font-size:9px;padding:0 8px}#biome-info{font-size:9px}#biome-fallback{font-size:9px}}
+/* HOLOCHLORIS : même scène p5, carte BioCLIP à gauche, schéma interactif à droite */
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:#000;color:#ebeded;font-family:"Courier New",Courier,monospace;letter-spacing:.06em}
+#stage,#stage canvas{display:block;width:100%;height:100%}
+#status{display:none;position:fixed;left:18px;top:14px;font-size:12px;color:#adbdc4;background:#080b0dce;padding:9px 12px;border:1px solid #20272b;border-radius:8px;max-width:75vw;z-index:10}
+#help{display:none;position:fixed;right:15px;bottom:12px;font-size:11px;color:#8a959b;z-index:10}
+#no-p5{position:fixed;left:20%;right:20%;top:45%;text-align:center;background:#1b1b1b;padding:22px;border:1px solid #333;z-index:20}
+#no-p5[hidden]{display:none}
+/* Position dans la scène, sans bordure et sans fond secondaire */
+#biome-panel{position:fixed;left:3%;width:94%;top:63%;height:34%;z-index:4;display:flex;align-items:stretch;gap:1.5%;padding:0;margin:0;background:transparent;border:0;outline:0;box-shadow:none;overflow:visible}
+#bioclip-pane{width:54%;height:100%;min-width:0;overflow:hidden;background:transparent;border:0}
+#biome-map{display:block;width:100%;height:100%;background:#000;border:0;outline:0;box-shadow:none}
+#territory-pane{width:44.5%;height:100%;min-width:0;display:flex;align-items:stretch;gap:7px;background:#000;border:0;overflow:hidden}
+#territory-figure{flex:1.55;min-width:0;height:100%;display:flex;flex-direction:column;align-items:stretch}
+.territory-heading{flex:none;font:9px "Courier New",monospace;letter-spacing:.1em;color:#c9d0cd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#territory-svg{width:100%;height:100%;min-height:0;display:block;cursor:crosshair;touch-action:none;overflow:visible}
+.territory-names text{fill:#d4ded9;font:12px "Courier New",monospace;letter-spacing:.03em;cursor:pointer;user-select:none;paint-order:stroke;stroke:#000;stroke-width:3px;stroke-linejoin:round}
+.territory-names text:hover,.territory-names text.active{fill:#fff;stroke:#000;text-decoration:underline}
+.territory-names text:focus-visible{outline:none;fill:#fff;filter:drop-shadow(0 0 4px #fff)}
+.territory-hint{margin:0;font-size:8px;color:#788984;letter-spacing:0;text-align:center;flex:none}
+#territory-readout{flex:1;min-width:0;border-left:1px solid #37413e;padding:5px 0 0 9px;font:9px/1.5 "Courier New",monospace;letter-spacing:.02em;color:#a6b5ae;overflow-y:auto}
+.info-title{font-size:9px;letter-spacing:.09em;color:#d4ded9;margin-bottom:5px}
+#position-x,#position-y{overflow-wrap:anywhere}
+.info-divider{width:35px;height:1px;background:#67756e;margin:9px 0}
+#territory-probable{display:inline-block;padding:4px 7px;background:#242b28;color:#edf3ef;letter-spacing:.08em}
+#territory-hypothesis{margin:4px 0 0;line-height:1.5}
+.territory-mode{font-size:8px;color:#8d9f96}
+@media(max-width:1000px){#biome-panel{left:2%;width:96%;top:58%;height:39%;gap:1%}#bioclip-pane{width:49%}#territory-pane{width:50%}#territory-readout{font-size:8px;padding-left:6px}.territory-names text{font-size:11px}}
+@media(max-width:660px){#biome-panel{top:55%;height:43%;flex-direction:column;gap:2%}#bioclip-pane{width:100%;height:48%}#territory-pane{width:100%;height:50%}#territory-readout{font-size:8px}}

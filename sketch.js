@@ -8,6 +8,14 @@ let bands=[], bandVersion=null, bandRequest=null, bandStarted=0;
 let video=null, videoVersion=null, pendingVideo=null;
 let status={c1:{ready:false}, c2:{ready:false}};
 let showLabels=true, diagnostics=false, refreshing=false;
+let biome='boreal';
+const BIOME_C1={
+  tropical:{order:[550,450,680],interval:850},
+  desert:{order:[680,550,450],interval:1800},
+  boreal:{order:[450,550,680],interval:1200},
+  taiga:{order:[550,680,450],interval:1600},
+  tundra:{order:[450,680,550],interval:2200}
+};
 const BAND_LABELS=['450 nm','550 nm','680 nm'];
 const BAND_INTERVAL=1200;
 const REF_W=1600, REF_H=900;
@@ -33,6 +41,7 @@ async function poll(){
     const response=await fetch('/api/status?time='+Date.now(),{cache:'no-store'});
     if(!response.ok)throw Error('API indisponible');
     status=await response.json();
+    if(status.biome && BIOME_C1[status.biome.biome]) biome=status.biome.biome;
     document.getElementById('status').textContent=`C1 : ${status.c1.ready?'série '+status.c1.version:'en attente'} | C2 : ${status.c2.ready?status.c2.filename:'en attente'} | BioCLIP : réservé`;
     if(status.c1.ready && status.c1.version!==bandVersion && status.c1.version!==bandRequest){loadBands(status.c1.version)}
     if(status.c2.ready && status.c2.version!==videoVersion && status.c2.version!==pendingVideo){loadVideo(status.c2.version)}
@@ -81,8 +90,11 @@ function draw(){
   push();translate((width-REF_W*s)*0.5,(height-REF_H*s)*0.5);scale(s);
   // Wide top strip containing two lenses, lower third intentionally reserved for BioCLIP.
   const leftX=410,rightX=1190,y=232,d=385;
-  const idx=bands.length===3?Math.floor((millis()-bandStarted)/BAND_INTERVAL)%3:0;
-  drawCircleSource(leftX,y,d,bands.length===3?bands[idx]:null);
+  const setting=BIOME_C1[biome]||BIOME_C1.boreal;
+  const idx=bands.length===3?Math.floor((millis()-bandStarted)/setting.interval)%3:0;
+  const bandIdx=setting.order[idx];
+  const bandPos=BAND_LABELS.findIndex(label=>label===bandIdx+' nm');
+  drawCircleSource(leftX,y,d,bands.length===3?bands[bandPos]:null);
   drawCircleVideo(rightX,y,d,video);
   if(showLabels){
     // Echelle nominale : le diamètre utile de chaque rond représente 5 mm.
@@ -93,7 +105,7 @@ function draw(){
     text('PERCEPTION SPECTRALE',leftX,511);
     text('PERCEPTION SPÉCULATIVE',rightX,511);
     fill(150,160,164);textSize(13);
-    if(bands.length===3)text(BAND_LABELS[idx]+'  /  CHAMP 5 × 5 mm*',leftX,540);
+    if(bands.length===3)text(BAND_LABELS[bandPos]+'  /  CHAMP 5 × 5 mm*',leftX,540);
     else text('CHAMP 5 × 5 mm*',leftX,540);
     text('ÉCHELLE DE LA SOURCE*',rightX,540);
   }

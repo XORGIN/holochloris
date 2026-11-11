@@ -1,0 +1,661 @@
+
+<!doctype html>
+<html lang="fr">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Holochloris · BioCLIP 2 · Carte PCA</title>
+
+<style>
+:root {
+  color-scheme: dark;
+  --fg: #d0d8d5;
+  --muted: #8e9f9c;
+  --bg: #000000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: var(--fg);
+  font: 12px "Courier New", monospace;
+}
+
+/* Conteneur invisible, sans cadre */
+#layout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  background: #000;
+  border: none;
+}
+
+/*
+  Masquer toute la barre de commande.
+  Les éléments restent dans le DOM pour
+  que le JavaScript continue à fonctionner.
+*/
+#toolbar {
+  display: none !important;
+}
+
+/* Masquer entièrement la légende */
+#legend {
+  display: none !important;
+}
+
+/* Carte seule */
+#map {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+  border: none;
+  box-shadow: none;
+}
+
+/* SVG sans encadrement */
+#map svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #000;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Informations au survol */
+#tip {
+  position: absolute;
+  z-index: 10;
+  max-width: 210px;
+  display: none;
+  pointer-events: none;
+
+  background: #101916;
+  border: 1px solid #4b625a;
+  padding: 8px;
+
+  box-shadow: 0 4px 20px #0008;
+  line-height: 1.5;
+  font-size: 11px;
+}
+
+#tip img {
+  width: 95px;
+  height: 95px;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Message seulement pendant le chargement */
+#message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 25px;
+  color: var(--muted);
+  line-height: 1.6;
+  background: transparent;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="layout">
+
+  <!--
+    Paramètres conservés pour le calcul,
+    mais totalement invisibles.
+  -->
+
+  <div id="toolbar">
+
+    <label>
+      COULEUR
+      <select id="colorBy">
+        <option value="group">groupe</option>
+        <option value="palette">palette</option>
+        <option value="scale">échelle</option>
+        <option value="species" selected>espèce</option>
+      </select>
+    </label>
+
+    <label>
+      <input type="checkbox" id="showText" checked>
+      noms des taxons
+    </label>
+
+    <label>
+      <input type="checkbox" id="joint" checked>
+      PCA conjointe
+    </label>
+
+    <span id="count"></span>
+
+  </div>
+
+
+  <!-- CARTE LATENTE BIOCLIP SEULE -->
+
+  <div id="map">
+
+    <div id="message">
+      Connexion à BioCLIP sur le port 8766…
+    </div>
+
+    <div id="tip"></div>
+
+  </div>
+
+
+  <!-- Légende invisible -->
+  <div id="legend"></div>
+
+</div>
+
+
+<script>
+"use strict";
+
+/* ----------------------------------------
+   CONFIGURATION
+---------------------------------------- */
+
+const $ = selector => document.querySelector(selector);
+
+const ns = "http://www.w3.org/2000/svg";
+
+const palette = [
+  "#5b9bd5",
+  "#f19c53",
+  "#68b78a",
+  "#e36d76",
+  "#a49be8",
+  "#e5c65c",
+  "#c08bc9",
+  "#9bb6bc",
+  "#d08a76",
+  "#aaa"
+];
+
+const fixed = {
+  nir: "#e15759",
+  uv: "#8e6cc0",
+  rgb: "#59a14f",
+  drawing: "#9c755f",
+  generated: "#bab0ac",
+  plant: "#59a14f",
+  macro: "#4e79a7",
+  micro: "#e15759",
+  field_rgb: "#59a14f",
+  nir_plant: "#e15759",
+  nir_micro: "#f4a582",
+  uv_plant: "#8e6cc0",
+  uv_micro: "#c9a8ec",
+  decell_raw: "#edc948",
+  botanical: "#9c755f"
+};
+
+let data = null;
+
+
+/* ----------------------------------------
+   OUTILS SVG
+---------------------------------------- */
+
+function svgEl(tag, attrs = {}, parent) {
+
+  const el = document.createElementNS(ns, tag);
+
+  for (const [key, value] of Object.entries(attrs)) {
+    el.setAttribute(key, String(value));
+  }
+
+  if (parent) {
+    parent.appendChild(el);
+  }
+
+  return el;
+}
+
+
+function textEl(parent, x, y, text, attrs = {}) {
+
+  const el = svgEl("text", {
+    x,
+    y,
+    fill: "#b3c1bd",
+    "font-size": 11,
+    "font-family": "Courier New, monospace",
+    ...attrs
+  }, parent);
+
+  el.textContent = text;
+
+  return el;
+}
+
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+
+function colors(items, field) {
+
+  const values = [
+    ...new Set(
+      items.map(
+        item => String(item[field] ?? "(aucun)")
+      )
+    )
+  ].sort();
+
+  return Object.fromEntries(
+    values.map((value, index) => [
+      value,
+      fixed[value] || palette[index % palette.length]
+    ])
+  );
+}
+
+
+/* ----------------------------------------
+   PROJECTION PCA BIOCLIP
+---------------------------------------- */
+
+function render() {
+
+  if (!data) return;
+
+  // Réglages conservés, sans barre visible
+  const joint = $("#joint").checked;
+  const showText = $("#showText").checked;
+  const field = $("#colorBy").value;
+
+  const P = joint
+    ? data.joint_pca
+    : data.image_pca;
+
+  const points = P?.images || [];
+
+  const textPoints = (
+    showText ? P?.texts : []
+  ) || [];
+
+  const names = data.text_labels || [];
+
+  if (!points.length) {
+    $("#message").textContent =
+      "La carte BioCLIP ne contient aucun point.";
+    return;
+  }
+
+
+  /* Coordonnées PCA */
+
+  const all = points.concat(textPoints);
+
+  const xs = all.map(point => point[0]);
+  const ys = all.map(point => point[1]);
+
+  const xmin = Math.min(...xs);
+  const xmax = Math.max(...xs);
+
+  const ymin = Math.min(...ys);
+  const ymax = Math.max(...ys);
+
+  const W = 1000;
+  const H = 590;
+  const pad = 50;
+
+  const sx = x =>
+    pad +
+    (x - xmin) / (xmax - xmin || 1) *
+    (W - 2 * pad);
+
+  const sy = y =>
+    H - pad -
+    (y - ymin) / (ymax - ymin || 1) *
+    (H - 2 * pad);
+
+
+  /* Création de la carte SVG */
+
+  const map = $("#map");
+
+  const old = map.querySelector("svg");
+
+  if (old) {
+    old.remove();
+  }
+
+  const svg = svgEl("svg", {
+    viewBox: `0 0 ${W} ${H}`,
+    preserveAspectRatio: "xMidYMid meet",
+    "aria-label": "Carte latente BioCLIP"
+  }, map);
+
+
+  /* Axes PCA */
+
+  textEl(
+    svg,
+    15,
+    28,
+    `PC2 ${(100 * (P.explained?.[1] || 0)).toFixed(1)} %`
+  );
+
+  textEl(
+    svg,
+    W - 15,
+    H - 14,
+    `PC1 ${(100 * (P.explained?.[0] || 0)).toFixed(1)} %`,
+    { "text-anchor": "end" }
+  );
+
+
+  /* Couleurs selon les espèces */
+
+  const cmap = colors(data.items || [], field);
+
+
+  /* --------------------------------------
+     POINTS DES IMAGES BIOCLIP
+  -------------------------------------- */
+
+  points.forEach((point, index) => {
+
+    const item = data.items[index];
+
+    if (!item) return;
+
+    const circle = svgEl("circle", {
+
+      cx: sx(point[0]).toFixed(2),
+      cy: sy(point[1]).toFixed(2),
+
+      r: 5,
+
+      fill: cmap[
+        String(item[field] ?? "(aucun)")
+      ],
+
+      stroke: "#111e1c",
+      "stroke-width": 0.7,
+      tabindex: 0
+
+    }, svg);
+
+    circle.style.cursor = "pointer";
+
+    const label =
+      item.species ||
+      item.name ||
+      item.id;
+
+
+    /* Informations au survol */
+
+    function show(event) {
+
+      const tip = $("#tip");
+
+      tip.replaceChildren();
+
+      const img = document.createElement("img");
+
+      img.src =
+        "/bioclip/thumb/" +
+        encodeURIComponent(item.id);
+
+      img.alt = "";
+
+      tip.appendChild(img);
+
+      const info = document.createElement("div");
+
+      info.textContent =
+        `${label} · ${item.group || ""} · ${item.scale || ""}`;
+
+      tip.appendChild(info);
+
+      tip.style.display = "block";
+
+      const rect = map.getBoundingClientRect();
+
+      const mx = event.clientX - rect.left;
+      const my = event.clientY - rect.top;
+
+      tip.style.left =
+        clamp(mx + 12, 0, Math.max(0, rect.width - 215)) +
+        "px";
+
+      tip.style.top =
+        clamp(my + 12, 0, Math.max(0, rect.height - 150)) +
+        "px";
+
+    }
+
+
+    circle.addEventListener(
+      "pointerenter",
+      show
+    );
+
+    circle.addEventListener(
+      "pointermove",
+      show
+    );
+
+    circle.addEventListener(
+      "pointerleave",
+      () => {
+        $("#tip").style.display = "none";
+      }
+    );
+
+
+    /* Focus */
+
+    circle.addEventListener("focus", () => {
+      circle.setAttribute("r", 9);
+    });
+
+    circle.addEventListener("blur", () => {
+      circle.setAttribute("r", 5);
+    });
+
+
+    /* Sélection d'un point */
+
+    circle.addEventListener("click", () => {
+
+      svg.querySelectorAll("circle").forEach(el => {
+
+        el.setAttribute(
+          "stroke-width",
+          "0.7"
+        );
+
+      });
+
+      circle.setAttribute("stroke", "#fff");
+      circle.setAttribute("stroke-width", 3);
+
+    });
+
+  });
+
+
+  /* --------------------------------------
+     NOMS DES TAXONS
+  -------------------------------------- */
+
+  textPoints.forEach((point, index) => {
+
+    const x = sx(point[0]);
+    const y = sy(point[1]);
+
+    const group = svgEl("g", {}, svg);
+
+    svgEl("path", {
+
+      d:
+        `M${x - 5} ${y} ` +
+        `L${x} ${y - 5} ` +
+        `L${x + 5} ${y} ` +
+        `L${x} ${y + 5} Z`,
+
+      fill: "none",
+      stroke: "#cbd4d0",
+      "stroke-width": 1.1
+
+    }, group);
+
+
+    textEl(
+      group,
+      x + 8,
+      y + 3,
+      names[index] || "",
+      {
+        "font-size": 9,
+        "font-style": "italic"
+      }
+    );
+
+
+    const title = svgEl(
+      "title",
+      {},
+      group
+    );
+
+    title.textContent =
+      names[index] || "";
+
+  });
+
+
+  /* --------------------------------------
+     AUCUNE LÉGENDE AFFICHÉE
+  -------------------------------------- */
+
+  $("#legend").replaceChildren();
+
+  $("#count").textContent = "";
+
+  $("#message").style.display = "none";
+
+}
+
+
+/* ----------------------------------------
+   CHARGEMENT DES DONNÉES BIOCLIP
+---------------------------------------- */
+
+async function load() {
+
+  try {
+
+    const response = await fetch(
+      "/bioclip/api/map",
+      {
+        cache: "no-store"
+      }
+    );
+
+    if (!response.ok) {
+
+      throw new Error(
+        `HTTP ${response.status}`
+      );
+
+    }
+
+    data = await response.json();
+
+    if (
+      !data ||
+      !Array.isArray(data.items)
+    ) {
+
+      throw new Error(
+        "Format des données inattendu"
+      );
+
+    }
+
+    render();
+
+  } catch (error) {
+
+    $("#message").textContent =
+      "Carte indisponible : " +
+      error.message +
+      ". Vérifie BioCLIP sur le port 8766.";
+
+    console.error(error);
+
+  }
+
+}
+
+
+/* ----------------------------------------
+   PARAMÈTRES INTERNES
+---------------------------------------- */
+
+for (const id of [
+  "#colorBy",
+  "#showText",
+  "#joint"
+]) {
+
+  $(id).addEventListener(
+    "change",
+    render
+  );
+
+}
+
+
+/* ----------------------------------------
+   DÉMARRAGE
+---------------------------------------- */
+
+load();
+
+</script>
+
+</body>
+</html>

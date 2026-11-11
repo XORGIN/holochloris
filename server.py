@@ -9,11 +9,34 @@ import os
 import re
 import threading
 import time
+import urllib.error
+import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+BIOME_IDS = {"tropical", "desert", "boreal", "taiga", "tundra"}
+STATE_LOCK = threading.Lock()
+DEFAULT_STATE = {"biome": "boreal", "x": 0.32, "y": 0.60, "version": 0}
+
+def biome_state():
+    try:
+        obj = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        if obj.get("biome") in BIOME_IDS:
+            return obj
+    except (OSError, ValueError, AttributeError):
+        pass
+    return dict(DEFAULT_STATE)
+
+def write_biome_state(obj):
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temp = STATE_FILE.with_suffix(".tmp")
+    temp.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temp, STATE_FILE)
+
+
 ROOT = Path(__file__).resolve().parent
+STATE_FILE = ROOT / "output" / "state" / "biome_state.json"
 CFG = json.loads((ROOT / 'config.json').read_text(encoding='utf-8'))
 C1 = Path(CFG['c1_directory'])
 C2 = Path(CFG['c2_directory'])
@@ -47,6 +70,71 @@ def load_manifest():
         pass
     return None
 
+
+
+# Afficher uniquement la carte BioCLIP sans modifier le projet BioCLIP lui-même.
+# L'iframe utilise /bioclip/ sur le même port que Holochloris. Ce proxy
+# s'adresse exclusivement au serveur de confiance sur 127.0.0.1:8766.
+BIOCLIP_ORIGIN = "http://127.0.0.1:8766"
+BIOCLIP_MAP_STYLE = r"""
+<style id="holochloris-map-only">
+:root {color-scheme: dark; --bg:#000; --panel:#000; --ink:#c8d3d3; --line:#101717;}
+html,body {background:#000!important;margin:0!important;overflow:hidden!important;}
+header, .intro, #tab-map > .intro, #tab-map .row, #tab-map .legend,
+#tab-map #gapInfo, #tab-map #mapInfo {display:none!important;}
+main {width:100%!important;max-width:none!important;padding:0!important;margin:0!important;}
+section.tab {display:none!important;}
+#tab-map {display:block!important;height:100vh!important;margin:0!important;padding:0!important;}
+#tab-map > .panel {height:100vh!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#000!important;}
+#map, #map.map-wrap {height:100%!important;margin:0!important;padding:0!important;}
+#map svg {height:100%!important;width:100%!important;background:#000!important;border:0!important;border-radius:0!important;}
+#tip {background:#161c1c!important;color:#e5eceb!important;}
+</style>
+"""
+BIOCLIP_EARLY_SCRIPT = r"""
+<script>
+// À l'intérieur du proxy BioCLIP uniquement : redirige les API vers le proxy.
+(function(){
+ const oldFetch=window.fetch.bind(window);
+ window.fetch=function(resource, options){
+   if(typeof resource==='string' && (resource.startsWith('/api/') || resource.startsWith('/thumb/'))){
+     resource='/bioclip'+resource;
+   }
+   return oldFetch(resource,options);
+ };
+})();
+</script>
+"""
+BIOCLIP_MAP_SCRIPT = r"""
+<script>
+(function(){
+  const start=()=>{
+    const st=document.getElementById('showText');
+    const jt=document.getElementById('joint');
+    if(st) st.checked=true;
+    if(jt) jt.checked=true;
+    if(typeof showTab==='function') showTab('map');
+    // Garder le panneau sur la carte au clic des points, tout en conservant le survol.
+    const map=document.getElementById('map');
+    if(map) map.addEventListener('click', function(e){
+      if(e.target.closest && e.target.closest('circle[data-i]')){
+        e.preventDefault();e.stopImmediatePropagation();
+      }
+    },true);
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
+})();
+</script>
+"""
+
+def bioclip_html_map_only(html):
+    """Transforme uniquement la copie HTTP de la page, jamais les fichiers BioCLIP."""
+    # L'application BioCLIP utilise les URL absolues /thumb/ pour ses images.
+    html = html.replace('return "/thumb/"', 'return "/bioclip/thumb/"')
+    html = html.replace('</head>', BIOCLIP_MAP_STYLE + BIOCLIP_EARLY_SCRIPT + '\n</head>', 1)
+    html = html.replace('</body>', BIOCLIP_MAP_SCRIPT + '\n</body>', 1)
+    return html
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
@@ -106,8 +194,86 @@ class Handler(SimpleHTTPRequestHandler):
         except (ConnectionResetError, BrokenPipeError):
             pass
 
+
+    def proxy_bioclip(self, method='GET'):
+        path=urlparse(self.path).path
+        if not (path == '/bioclip' or path.startswith('/bioclip/')):
+            self.send_error(404)
+            return
+        upstream_path = path[len('/bioclip'):] or '/'
+        query = urlparse(self.path).query
+        url = BIOCLIP_ORIGIN + upstream_path + ('?' + query if query else '')
+        try:
+            data = None
+            if method == 'POST':
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 12 * 1024 * 1024:
+                    self.send_error(413, 'Requête BioCLIP trop grande ou vide')
+                    return
+                data = self.rfile.read(length)
+            headers = {}
+            if data is not None:
+                headers['Content-Type'] = self.headers.get('Content-Type','application/json')
+            request = urllib.request.Request(url, data=data, headers=headers, method=method)
+            try:
+                response = urllib.request.urlopen(request, timeout=45)
+            except urllib.error.HTTPError as error:
+                response = error
+            with response:
+                body = response.read()
+                code = response.status
+                ct = response.headers.get('Content-Type', 'application/octet-stream')
+                if method == 'GET' and upstream_path == '/' and code == 200:
+                    html = body.decode('utf-8')
+                    body = bioclip_html_map_only(html).encode('utf-8')
+                    ct = 'text/html; charset=utf-8'
+                self.send_response(code)
+                self.send_header('Content-Type', ct)
+                self.send_header('Content-Length', str(len(body)))
+                self.send_header('Cache-Control','no-store')
+                self.end_headers()
+                self.wfile.write(body)
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            self.send_json({'error':f'BioCLIP : serveur 8766 indisponible ({error})'}, 502)
+        except (ValueError, UnicodeDecodeError) as error:
+            self.send_json({'error':f'BioCLIP : réponse invalide ({error})'}, 502)
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        if path == '/bioclip' or path.startswith('/bioclip/'):
+            return self.proxy_bioclip('POST')
+        if path != '/api/biome':
+            self.send_error(404)
+            return
+        try:
+            length = int(self.headers.get('Content-Length', '0'))
+            if length <= 0 or length > 4096:
+                self.send_json({'error': 'Corps trop grand ou absent'}, 400)
+                return
+            raw = json.loads(self.rfile.read(length))
+            biome = raw.get('biome')
+            if biome not in BIOME_IDS:
+                self.send_json({'error': 'Biome inconnu'}, 400)
+                return
+            x = float(raw.get('x', 0.5))
+            y = float(raw.get('y', 0.5))
+            if not (0 <= x <= 1 and 0 <= y <= 1):
+                self.send_json({'error': 'Coordonnées hors de [0,1]'}, 400)
+                return
+            with STATE_LOCK:
+                previous = biome_state()
+                # Une action ne relance C2 que si le biome sélectionné a changé.
+                obj = {'biome': biome, 'x': x, 'y': y,
+                       'version': int(time.time_ns()) if previous['biome'] != biome else previous['version']}
+                write_biome_state(obj)
+            self.send_json(obj)
+        except (ValueError, TypeError, KeyError):
+            self.send_json({'error': 'État invalide'}, 400)
+
     def do_GET(self):
         path = urlparse(self.path).path
+        if path == '/bioclip' or path.startswith('/bioclip/'):
+            return self.proxy_bioclip('GET')
         if path == '/api/status':
             manifest, video = load_manifest(), latest_video()
             version = None
@@ -117,8 +283,12 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({
                 'c1': {'ready': bool(manifest), 'version': manifest.get('version') if manifest else None},
                 'c2': {'ready': bool(video), 'version': version, 'filename': video.name if video else None},
-                'bioclip': {'ready': False}
+                'bioclip': {'ready': False},
+                'biome': biome_state()
             })
+            return
+        if path == '/api/biome':
+            self.send_json(biome_state())
             return
         if path == '/api/c1/sequence':
             manifest = load_manifest()
