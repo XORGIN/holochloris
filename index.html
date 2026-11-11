@@ -21,34 +21,114 @@
     <div id="territory-figure">
       <div class="territory-heading">TOPOLOGIE D’HYPOTHÈSES PERCEPTIVES SITUÉES</div>
       <svg id="territory-svg" viewBox="0 0 680 420" role="group" aria-label="Carte territoriale vectorielle interactive, axes tropical vers boréal et toundra vers désert">
-        <defs>
-          <filter id="cursor-glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="5"/></filter>
-        </defs>
-        <g class="territory-contours" fill="none" stroke="#7a8584" stroke-width="1" stroke-dasharray="1 6" opacity=".55">
-          <path d="M92 126 C140 120 141 63 219 73 C273 57 286 112 341 131 C308 166 278 177 213 165 C168 150 140 178 92 126Z"/>
-          <path d="M356 102 C405 55 493 60 546 96 C563 123 515 150 465 157 C426 170 383 153 356 102Z"/>
-          <path d="M480 172 C530 147 583 172 586 224 C585 265 545 290 504 276 C474 265 459 202 480 172Z"/>
-          <path d="M98 244 C148 202 223 228 267 233 C310 255 302 322 241 334 C194 340 141 326 100 298 C80 282 74 266 98 244Z"/>
-          <path d="M344 262 C390 235 464 227 526 272 C542 302 490 337 437 339 C392 351 353 324 344 262Z"/>
-        </g>
-        <g class="territory-axes" stroke="#ced8d4" stroke-width="1.5" fill="none">
-          <path d="M65 211H611"/><path d="M65 211l10 -6v12Z" fill="#ced8d4"/><path d="M611 211l-10 -6v12Z" fill="#ced8d4"/>
-          <path d="M335 47V369"/><path d="M335 47l-6 10h12Z" fill="#ced8d4"/><path d="M335 369l-6 -10h12Z" fill="#ced8d4"/>
-        </g>
-        <g class="territory-names">
-          <text data-territory="desert" tabindex="0" role="button" aria-label="Désert" x="335" y="33" text-anchor="middle">DÉSERT</text>
-          <text data-territory="tropical" tabindex="0" role="button" aria-label="Tropical" x="56" y="202" text-anchor="start">TROPICAL</text>
-          <text data-territory="boreal" tabindex="0" role="button" aria-label="Boréal" x="621" y="202" text-anchor="end">BORÉAL</text>
-          <text data-territory="tundra" tabindex="0" role="button" aria-label="Toundra" x="335" y="405" text-anchor="middle">TOUNDRA</text>
-          <text data-territory="savane" tabindex="0" role="button" aria-label="Savane" x="197" y="119" text-anchor="middle">SAVANE</text>
-          <text data-territory="mediterraneen" tabindex="0" role="button" aria-label="Méditerranéen" x="452" y="109" text-anchor="middle">MÉDITERRANÉEN</text>
-          <text data-territory="alpin" tabindex="0" role="button" aria-label="Biomes alpins" x="543" y="191" text-anchor="middle"><tspan x="543" dy="0">BIOMES</tspan><tspan x="543" dy="16">ALPINS</tspan></text>
-          <text data-territory="foret_temperee" tabindex="0" role="button" aria-label="Forêt tempérée" x="200" y="276" text-anchor="middle"><tspan x="200">FORÊT</tspan><tspan x="200" dy="16">TEMPÉRÉE</tspan></text>
-          <text data-territory="taiga" tabindex="0" role="button" aria-label="Taïga" x="443" y="291" text-anchor="middle">TAÏGA</text>
-        </g>
-        <circle id="territory-halo" cx="450" cy="125" r="16" fill="#cce9e0" opacity=".35" filter="url(#cursor-glow)" pointer-events="none"/>
-        <circle id="territory-ring" cx="450" cy="125" r="12" fill="none" stroke="#d8e7e1" stroke-width="1" pointer-events="none"/>
-        <circle id="territory-dot" cx="450" cy="125" r="5" fill="#d8e7e1" pointer-events="none"/>
+          <defs>
+              <filter id="cursor-glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="5" /></filter>
+          </defs>
+
+          <g class="territory-contours"
+             fill="none"
+             stroke="#7a8584"
+             stroke-width="1"
+             stroke-dasharray="1 4"
+             stroke-linecap="round"
+             opacity=".65">
+
+              <!-- SAVANE : en haut à gauche -->
+              <path d="
+    M 125 150
+    C 140 128 163 121 189 110
+    C 209 95 234 96 257 94
+    C 282 92 299 104 310 120
+    C 323 135 329 150 325 162
+    C 314 176 295 180 272 180
+    C 252 178 231 170 214 163
+    C 194 155 173 167 152 168
+    C 135 169 119 164 125 150
+    Z
+  " />
+
+              <!-- MÉDITERRANÉEN : en haut au centre -->
+              <path d="
+    M 335 118
+    C 353 121 369 106 385 91
+    C 406 76 426 72 454 73
+    C 479 74 509 81 529 90
+    C 541 100 537 116 527 129
+    C 513 143 495 151 477 150
+    C 457 148 438 138 418 137
+    C 398 138 382 145 363 145
+    C 349 145 340 143 335 144
+  " />
+
+              <!-- BIOMES ALPINS : à droite -->
+              <path d="
+    M 519 121
+    C 538 114 558 116 575 124
+    C 593 133 602 152 602 170
+    C 604 187 593 204 576 210
+    C 559 216 539 210 521 202
+    C 502 195 488 183 483 168
+    C 478 153 493 137 507 127
+    C 512 124 516 122 519 121
+    Z
+  " />
+
+              <!-- FORÊT TEMPÉRÉE : en bas à gauche -->
+              <path d="
+    M 103 252
+    C 117 231 144 239 166 234
+    C 188 228 207 216 229 222
+    C 254 226 269 244 276 266
+    C 285 287 286 312 273 328
+    C 257 342 233 341 212 335
+    C 188 328 167 327 146 321
+    C 125 316 107 309 97 292
+    C 88 278 90 263 103 252
+    Z
+  " />
+
+              <!-- TAÏGA : en bas à droite -->
+              <path d="
+    M 275 310
+    C 300 301 317 286 340 281
+    C 361 274 382 271 402 277
+    C 424 283 442 281 459 262
+    C 476 244 495 229 517 225
+    C 539 222 560 226 575 237
+    C 588 247 594 262 589 279
+    C 583 295 569 305 548 309
+    C 526 313 507 305 486 301
+    C 465 296 447 297 424 301
+    C 401 305 383 312 361 319
+    C 338 327 313 335 292 330
+    C 278 327 269 317 275 310
+    Z
+  " />
+
+          </g>
+
+          <g class="territory-axes" stroke="#ced8d4" stroke-width="1.5" fill="none">
+              <path d="M65 211H611" />
+              <path d="M65 211l10 -6v12Z" fill="#ced8d4" />
+              <path d="M611 211l-10 -6v12Z" fill="#ced8d4" />
+              <path d="M335 47V369" />
+              <path d="M335 47l-6 10h12Z" fill="#ced8d4" />
+              <path d="M335 369l-6 -10h12Z" fill="#ced8d4" />
+          </g>
+          <g class="territory-names">
+              <text data-territory="desert" tabindex="0" role="button" aria-label="Désert" x="335" y="33" text-anchor="middle">DÉSERT</text>
+              <text data-territory="tropical" tabindex="0" role="button" aria-label="Tropical" x="56" y="202" text-anchor="start">TROPICAL</text>
+              <text data-territory="boreal" tabindex="0" role="button" aria-label="Boréal" x="621" y="202" text-anchor="end">BORÉAL</text>
+              <text data-territory="tundra" tabindex="0" role="button" aria-label="Toundra" x="335" y="405" text-anchor="middle">TOUNDRA</text>
+              <text data-territory="savane" tabindex="0" role="button" aria-label="Savane" x="197" y="119" text-anchor="middle">SAVANE</text>
+              <text data-territory="mediterraneen" tabindex="0" role="button" aria-label="Méditerranéen" x="452" y="109" text-anchor="middle">MÉDITERRANÉEN</text>
+              <text data-territory="alpin" tabindex="0" role="button" aria-label="Biomes alpins" x="543" y="191" text-anchor="middle"><tspan x="543" dy="0">BIOMES</tspan><tspan x="543" dy="16">ALPINS</tspan></text>
+              <text data-territory="foret_temperee" tabindex="0" role="button" aria-label="Forêt tempérée" x="200" y="276" text-anchor="middle"><tspan x="200">FORÊT</tspan><tspan x="200" dy="16">TEMPÉRÉE</tspan></text>
+              <text data-territory="taiga" tabindex="0" role="button" aria-label="Taïga" x="443" y="291" text-anchor="middle">TAÏGA</text>
+          </g>
+          <circle id="territory-halo" cx="450" cy="125" r="16" fill="#cce9e0" opacity=".35" filter="url(#cursor-glow)" pointer-events="none" />
+          <circle id="territory-ring" cx="450" cy="125" r="12" fill="none" stroke="#d8e7e1" stroke-width="1" pointer-events="none" />
+          <circle id="territory-dot" cx="450" cy="125" r="5" fill="#d8e7e1" pointer-events="none" />
       </svg>
       <p class="territory-hint">DÉPLACER LE CURSEUR · CLIQUER POUR APPLIQUER À C1 / C2</p>
     </div>
